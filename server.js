@@ -1,37 +1,38 @@
 const express = require("express");
 const app = express();
-const stripe = require("stripe")(
-    "sk_test_51NFJyxIbcEgeFqaq0ILbBdwIJq3K2gZaN8HYHg0ZPvX9Zt1MOGAcwfLJkyp66pvzmxIy04OyZIAIp6VsTbAct3bN00shEhxkL9",
-);
+require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE);
+
+//const endpointSecret = process.env.END_POINT_STRIPE
 
 app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
+const idUser = 2;
 app.get("/", (req, res) => {
     res.render("Home");
 });
 app.get("/success", (req, res) => {
-    res.render("Success");
+    res.render("Success", { id: idUser });
+});
+app.get("/cancel", (req, res) => {
+    res.render("Cancel");
 });
 
 app.post("/createcheckoutsession", async (req, res) => {
     try {
-        const emailUser = "customerEmail@gmail.com";
-        const nameUser = "Pedro Henrique Costa";
-        const priceId = req.body.priceId;
+        const { emailUser, priceId } = req.body;
         const session = await stripe.checkout.sessions.create({
             mode: "subscription",
             line_items: [
                 {
                     price: priceId,
-                    // For metered billing, do not pass quantity
                     quantity: 1,
                 },
             ],
-            success_url: "http://localhost:3000/success?session_id=1",
-            cancel_url: "https://www.youtube.com/",
+            success_url: `http://localhost:${port}/success?session_id=${idUser}`,
+            cancel_url: `http://localhost:${port}/cancel`,
             customer_email: emailUser,
         });
         res.redirect(303, session.url);
@@ -41,59 +42,48 @@ app.post("/createcheckoutsession", async (req, res) => {
     }
 });
 
-app.post("/webhook", async (req, res) => {
-    let data;
-    let eventType;
-    // Check if webhook signing is configured.
-    const webhookSecret =
-        "whsec_ab52b8ac7237545793af5715c799ddcde7fa2dcbb9de7323600862ad57644608";
-    if (webhookSecret) {
-        // Retrieve the event by verifying the signature using the raw body and secret.
-        let event;
-        let signature = req.headers["stripe-signature"];
+app.post('/hooks', express.raw({type: 'application/json'}), (req, res) => {
+    console.log('Received webhook payload:', req.body);
+    const siginsecret = process.env.END_POINT_STRIPE;
+    const payload = req.body;
+    const sig  =req.headers['stripe-signature'];
 
-        try {
-            event = stripe.webhooks.constructEvent(
-                req.body,
-                signature,
-                webhookSecret,
-            );
-        } catch (err) {
-            console.log(`⚠️  Webhook signature verification failed.`);
-            return res.sendStatus(400);
-        }
-        // Extract the object from the event.
-        data = event.data;
-        eventType = event.type;
-    } else {
-        // Webhook signing is recommended, but if the secret is not configured in `config.js`,
-        // retrieve the event data directly from the request body.
-        data = req.body.data;
-        eventType = req.body.type;
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(payload, sig, siginsecret);
+    } catch (error) {
+        console.log(error.mensagem)
+        res.status(400).json({mensagem:"Deu ruim"});
+        return;
     }
 
-    switch (eventType) {
-        case "checkout.session.completed":
-            // Payment is successful and the subscription is created.
-            // You should provision the subscription and save the customer ID to your database.
+    //OK
+
+    console.log(event.type);
+    console.log(event.data.object);
+    console.log(event.data.object.id);
+    res.json({mensagem: "Sucesso!"});
+
+    // Handle the event
+    switch (event.type) {
+        case 'payment_intent.succeeded':
+            const paymentIntentSucceeded = event.data.object;
+            console.log('Payment Intent Succeeded:', paymentIntentSucceeded);
             break;
-        case "invoice.paid":
-            // Continue to provision the subscription as payments continue to be made.
-            // Store the status in your database and check when a user accesses your service.
-            // This approach helps you avoid hitting rate limits.
-            break;
-        case "invoice.payment_failed":
-            // The payment failed or the customer does not have a valid payment method.
-            // The subscription becomes past_due. Notify your customer and send them to the
-            // customer portal to update their payment information.
+        case 'subscription.payment_succeeded':
+            console.log('Subscription Payment Succeeded:', event.data.object);
+                // Adicione o código aqui para processar as informações no seu banco de dados
+            res.status(200).json({mensagem:"subscription.payment_succeeded"});
             break;
         default:
-        // Unhandled event type
+        console.log(`Unhandled event type ${event.type}`);
     }
+        res.send();
+    });
 
-    res.sendStatus(200);
-});
+const port = process.env.PORT || 3000;
 
-app.listen(3000, () => {
-    console.log("Servidor rodando na porta 3000");
+app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
 });
