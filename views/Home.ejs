@@ -6,8 +6,26 @@
         <title>Checkout</title>
         <link type="text/css" rel="stylesheet" href="/css/style.css">
     </head>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            text-decoration: none;
+            list-style: none;
+        }
+        h1{
+            color: black;
+            font-size: 32px;
+            font-weight: 600;
+        }
+        b{
+            color: red;
+        }
+    </style>
     <body>
-        <h1>Checkout Stripe</h1>
+        <h1>Acomp<b>X</b></h1>
         <form action="/createcheckoutsession" method="POST">
             <input type="email" name="emailUser" value="vittorfonsecaserra97@hotmail.com" id="">
             <input type="hidden" name="priceId" value="price_1NFK9rIbcEgeFqaqxYcwn244" />
