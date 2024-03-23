@@ -2,3 +2,7 @@ CardCreditTest = 4242424242424242
 Ver Lisa de Events Válidos: stripe trigger --help
 stripe listen --events subscription.payment_succeeded --forward-to localhost:8080/hooks
 stripe listen --skip-verify --forward-to localhost:8080/hooks
+
+stripe listen --forward-to=localhost:8080/webhooks
+
+stripe trigger 

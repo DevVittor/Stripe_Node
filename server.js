@@ -80,6 +80,28 @@ app.post("/webhooks",express.raw({type:"application/json"}),async(req,res)=>{
             console.log("Link para acessar seu recibo a fatura e gerenciar a assinatura: ",event.data.object.receipt_url);
             console.log("Estou autorizado: ", event.data.object.outcome.type);
             break;
+        case 'invoice.finalized':
+            console.log("Baixar Fatura em PDF: ", event.data.object.invoice_pdf);
+            // Carimbos de data e hora
+            let startTimestamp = event.data.object.period_start;
+            let endTimestamp = event.data.object.period_end;
+
+            // Convertendo para objetos Date
+            let startDate = new Date(startTimestamp * 1000);
+            let endDate = new Date(endTimestamp * 1000);
+
+            // Ajustando para o fuso horário de Brasília
+            startDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+            endDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+
+            // Obtendo as partes da data (ano, mês, dia, hora, minuto, segundo) no fuso horário de Brasília
+            let startDateTimeStringBrasilia = startDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            let endDateTimeStringBrasilia = endDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+            // Imprimindo os resultados
+            console.log("Início do período (Brasília):", startDateTimeStringBrasilia);
+            console.log("Término do período (Brasília):", endDateTimeStringBrasilia);
+            break;
         default:
             break;
     }
